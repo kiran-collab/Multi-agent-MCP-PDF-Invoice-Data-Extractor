@@ -1,0 +1,5 @@
+# LLM client for field extraction
+google-genai>=0.3.0
+
+# MCP client for talking to the Box MCP server
+mcp>=1.0.0

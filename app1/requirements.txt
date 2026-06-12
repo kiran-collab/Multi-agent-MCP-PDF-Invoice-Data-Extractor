@@ -1,0 +1,5 @@
+# LLM client for field extraction
+google-genai>=0.3.0
+
+# Local PDF text extraction
+pypdf>=4.0.0
