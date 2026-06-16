@@ -16,3 +16,7 @@ env/
 # IDE
 .vscode/
 .idea/
+
+# Eval outputs (regenerated)
+evals/results/*.json
+evals/results/*_traces.json

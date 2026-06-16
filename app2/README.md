@@ -65,3 +65,15 @@ Writes `reports/report_<Client>.txt` for each client found.
   fences and parses it. Add validation/retries for production use.
 - Generative output is non-deterministic; the same invoice may parse slightly
   differently across runs.
+
+## Evaluation
+
+The repo's [`evals/`](../evals/README.md) harness measures this app's extraction
+quality (json validity, schema, field accuracy, numeric tolerance, line-item
+recall, hallucination rate, empty-text handling) against a golden dataset:
+
+```bash
+python evals/run_app2_eval.py --mock   # offline smoke test (no Box/Gemini)
+python evals/run_app2_eval.py          # real run (needs Box MCP + GOOGLE_API_KEY)
+python evals/report_eval_results.py
+```

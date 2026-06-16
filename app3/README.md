@@ -103,3 +103,17 @@ the aggregated per-client report.
   etc.).
 - Generative output is non-deterministic; the same invoice may parse slightly
   differently across runs.
+
+## Evaluation
+
+The repo's [`evals/`](../evals/README.md) harness evaluates this multi-agent
+system at two levels — each agent (Files / Extraction) on its own work function,
+and the full orchestrated workflow end-to-end — plus trace-based delegation and
+per-client report correctness:
+
+```bash
+python evals/run_app3_eval.py --mode mock        # offline smoke test
+python evals/run_app3_eval.py --mode component   # per-agent (needs google-adk + Box + Gemini)
+python evals/run_app3_eval.py --mode e2e --folder-id <id>   # full A2A workflow (all 3 servers up)
+python evals/report_eval_results.py
+```

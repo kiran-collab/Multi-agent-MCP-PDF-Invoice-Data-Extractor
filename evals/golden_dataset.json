@@ -1,0 +1,53 @@
+[
+  {
+    "file_name": "invoice_001.pdf",
+    "box_file_id": "REPLACE_WITH_REAL_BOX_FILE_ID",
+    "source_text": "ACME CORP\nInvoice INV-001\nDate: 2026-05-10\nBill To: Acme Corp\nCloud hosting   1 x 1250.50   1250.50\nTotal Due: USD 1250.50",
+    "expected": {
+      "invoice_id": "INV-001",
+      "client_name": "Acme Corp",
+      "invoice_date": "2026-05-10",
+      "currency": "USD",
+      "total_amount": 1250.50,
+      "line_items": [
+        {"description": "Cloud hosting", "quantity": 1, "unit_price": 1250.50, "amount": 1250.50}
+      ]
+    },
+    "mock_predicted": {
+      "invoice_id": "INV-001",
+      "client_name": "ACME Corp",
+      "invoice_date": "2026-05-10",
+      "currency": "USD",
+      "total_amount": 1250.50,
+      "line_items": [
+        {"description": "Cloud hosting", "quantity": 1, "unit_price": 1250.50, "amount": 1250.50}
+      ]
+    }
+  },
+  {
+    "file_name": "invoice_002.pdf",
+    "box_file_id": "REPLACE_WITH_REAL_BOX_FILE_ID",
+    "source_text": "Globex LLC\nInvoice #INV-002   Date 2026-06-01\nConsulting    10 x 200.00   2000.00\nSupport plan   1 x 500.00    500.00\nTotal: EUR 2500.00",
+    "expected": {
+      "invoice_id": "INV-002",
+      "client_name": "Globex LLC",
+      "invoice_date": "2026-06-01",
+      "currency": "EUR",
+      "total_amount": 2500.00,
+      "line_items": [
+        {"description": "Consulting", "quantity": 10, "unit_price": 200.00, "amount": 2000.00},
+        {"description": "Support plan", "quantity": 1, "unit_price": 500.00, "amount": 500.00}
+      ]
+    },
+    "mock_predicted": {
+      "invoice_id": "INV-002",
+      "client_name": "Globex LLC",
+      "invoice_date": "2026-06-01",
+      "currency": "EUR",
+      "total_amount": 2400.00,
+      "line_items": [
+        {"description": "Consulting", "quantity": 10, "unit_price": 200.00, "amount": 2000.00}
+      ]
+    }
+  }
+]
