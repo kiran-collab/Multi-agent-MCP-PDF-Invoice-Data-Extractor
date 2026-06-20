@@ -23,9 +23,12 @@ the same harness run fully offline or feed a production tracing backend.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+
+logger = logging.getLogger("evals.tracing")
 
 
 class Trace:
@@ -41,6 +44,9 @@ class Trace:
         entry = {"agent": agent, "tool": tool, "status": status}
         entry.update(extra)
         self.steps.append(entry)
+        log = logger.warning if status == "error" else logger.info
+        log("[%s] %s.%s -> %s %s", self.trace_id, agent, tool, status,
+            {k: v for k, v in extra.items()} or "")
 
     def to_dict(self) -> Dict[str, Any]:
         return {"trace_id": self.trace_id, **self.context, "steps": self.steps}
@@ -91,3 +97,4 @@ class TraceLog:
         Path(path).write_text(
             json.dumps([t.to_dict() for t in self.traces], indent=2)
         )
+        logger.info("wrote %d trace(s) to %s", len(self.traces), path)

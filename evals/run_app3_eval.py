@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -43,6 +44,8 @@ sys.path.insert(0, str(HERE))
 
 from scorers import aggregate, score_invoice, score_report_text  # noqa: E402
 from tracing import TraceLog  # noqa: E402
+
+logger = logging.getLogger("evals.app3")
 
 
 def _load_dataset() -> list:
@@ -73,6 +76,8 @@ async def run_component(dataset: list, traces: TraceLog) -> list:
     results = []
     for i, case in enumerate(dataset):
         name = case["file_name"]
+        logger.info("[%d/%d] ExtractionAgent.extract_invoice %s (box_file_id=%s)",
+                    i + 1, len(dataset), name, case["box_file_id"])
         tr = traces.new(f"app3-comp-{i:03d}", file_name=name)
         record: dict = {"file_name": name, "expected": case["expected"]}
 
@@ -80,6 +85,7 @@ async def run_component(dataset: list, traces: TraceLog) -> list:
         try:
             predicted = json.loads(raw)
         except json.JSONDecodeError as exc:
+            logger.error("invalid JSON from ExtractionAgent for %s: %s", name, exc)
             tr.step("ExtractionAgent", "extract_invoice", "error", error=f"json: {exc}")
             record.update({"json_valid": False, "scores": None})
             results.append(record)
@@ -179,10 +185,18 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Evaluate app3 multi-agent system.")
     ap.add_argument("--mode", choices=["component", "e2e", "mock"], default="component")
     ap.add_argument("--folder-id", default=os.getenv("EVAL_FOLDER_ID", "0"))
+    ap.add_argument("--log-level", default="INFO",
+                    help="Logging level: DEBUG, INFO, WARNING, ERROR (default INFO).")
     args = ap.parse_args()
+
+    logging.basicConfig(
+        level=getattr(logging, args.log_level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
+    )
 
     dataset = _load_dataset()
     traces = TraceLog()
+    logger.info("app3 eval starting: %d case(s), mode=%s", len(dataset), args.mode)
 
     if args.mode == "mock":
         results = run_mock(dataset)

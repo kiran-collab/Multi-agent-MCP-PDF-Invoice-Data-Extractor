@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import sys
 from pathlib import Path
 
@@ -36,6 +37,8 @@ sys.path.insert(0, str(HERE))  # so `import scorers` / `import tracing` work
 
 from scorers import aggregate, score_invoice  # noqa: E402
 from tracing import TraceLog  # noqa: E402
+
+logger = logging.getLogger("evals.app2")
 
 
 def _load_dataset() -> list:
@@ -56,11 +59,14 @@ async def run_real(dataset: list, traces: TraceLog) -> list:
     results = []
     for i, case in enumerate(dataset):
         name = case["file_name"]
+        logger.info("[%d/%d] processing %s (box_file_id=%s)",
+                    i + 1, len(dataset), name, case["box_file_id"])
         tr = traces.new(f"app2-{i:03d}", file_name=name)
         record: dict = {"file_name": name, "expected": case["expected"]}
 
         text = await box_mcp_client.extract_text(case["box_file_id"])
         if not text.strip():
+            logger.warning("empty MCP text for %s; skipping", name)
             # Empty-text handling: app2 skips these; record it as a handled skip.
             tr.step("BoxMCP", "extract_text", "empty", chars=0)
             record.update({"skipped": True, "reason": "empty_text", "scores": None})
@@ -77,6 +83,7 @@ async def run_real(dataset: list, traces: TraceLog) -> list:
             record["json_valid"] = True
         except json.JSONDecodeError as exc:
             # Malformed LLM JSON breaks extract_invoice_fields' json.loads.
+            logger.error("invalid JSON from LLM for %s: %s", name, exc)
             tr.step("LLM", "extract_invoice_fields", "error", error=f"json: {exc}")
             record.update({"json_valid": False, "scores": None})
             results.append(record)
@@ -111,10 +118,19 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Evaluate app2 invoice extraction.")
     ap.add_argument("--mock", action="store_true",
                     help="Offline: score mock_predicted instead of calling Box/Gemini.")
+    ap.add_argument("--log-level", default="INFO",
+                    help="Logging level: DEBUG, INFO, WARNING, ERROR (default INFO).")
     args = ap.parse_args()
+
+    logging.basicConfig(
+        level=getattr(logging, args.log_level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
+    )
 
     dataset = _load_dataset()
     traces = TraceLog()
+    logger.info("app2 eval starting: %d case(s), mode=%s",
+                len(dataset), "mock" if args.mock else "real")
 
     if args.mock:
         results = run_mock(dataset)

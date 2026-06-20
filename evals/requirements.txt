@@ -1,6 +1,8 @@
-# The eval harness itself (scorers, tracing, reporting, mock runs) uses only the
-# Python standard library — nothing to install for offline use.
-#
+# Eval harness dependencies. pydantic powers schema validation (schema.py); if it
+# is absent the scorers fall back to a stdlib type check, so this stays optional
+# but recommended. Logging uses the stdlib `logging` module (no dependency).
+pydantic>=2.0
+
 # REAL runs additionally need the target app's dependencies:
 #   pip install -r app2/requirements.txt   # for run_app2_eval.py
 #   pip install -r app3/requirements.txt   # for run_app3_eval.py

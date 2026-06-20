@@ -47,6 +47,19 @@ def test_schema():
     assert "client_name" in res["missing"]
 
 
+def test_pydantic_schema_module():
+    from schema import validate_invoice  # noqa: PLC0415
+
+    assert validate_invoice(PERFECT)["valid"]
+    # "1250.50" as a string still validates (pydantic coerces to float).
+    ok = validate_invoice(dict(PERFECT, total_amount="1250.50"))
+    assert ok["valid"]
+    bad = validate_invoice({"invoice_id": "x"})
+    assert not bad["valid"]
+    assert "client_name" in bad["missing"]
+    assert bad["errors"]  # structured per-field errors present
+
+
 def test_perfect_match_scores_one():
     s = score_invoice(PERFECT, PERFECT)
     assert s["overall"] == 1.0

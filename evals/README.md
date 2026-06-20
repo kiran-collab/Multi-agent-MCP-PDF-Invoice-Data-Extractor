@@ -8,14 +8,26 @@ outputs.
 ```
 evals/
 ├── golden_dataset.json       # expected outputs (+ source_text, mock_predicted)
-├── scorers.py                # pure-stdlib metric functions (offline-testable)
+├── schema.py                 # pydantic models for output-contract validation
+├── scorers.py                # metric functions (offline-testable)
 ├── tracing.py                # trace-based agent logging (+ optional Langfuse)
 ├── run_app2_eval.py          # app2 runner (real / --mock)
 ├── run_app3_eval.py          # app3 runner (component / e2e / mock)
 ├── report_eval_results.py    # render saved results as a metric table
-├── test_scorers.py           # offline unit tests for the scorers
+├── test_scorers.py           # offline unit tests for the scorers + schema
 └── results/                  # generated *_eval_results.json + *_traces.json
 ```
+
+**Validation** — `schema.py` defines pydantic v2 models (`InvoiceModel`,
+`LineItemModel`) whose core fields are required (no defaults), so a missing or
+mistyped key is a real validation error. `scorers.check_schema` uses them for the
+*schema validity* metric and reports per-field errors; if pydantic isn't
+installed it falls back to a stdlib type check.
+
+**Logging** — every module logs via the stdlib `logging` module under the
+`evals.*` namespace (extraction steps, skips, schema failures, ungrounded values,
+trace writes). The runners configure it with `--log-level DEBUG|INFO|WARNING|ERROR`
+(default `INFO`); the final JSON summary is still printed to stdout for piping.
 
 ## Metrics
 

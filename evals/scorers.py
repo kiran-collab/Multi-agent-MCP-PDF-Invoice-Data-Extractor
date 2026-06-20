@@ -19,9 +19,22 @@ Metrics implemented (see evals/README.md for the rationale of each):
 from __future__ import annotations
 
 import json
+import logging
 import re
 from math import isclose
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger("evals.scorers")
+
+# Schema validation is done with pydantic when available (see schema.py); we keep
+# a stdlib fallback so the scorers still run in a minimal environment.
+try:
+    from schema import validate_invoice as _validate_invoice
+    _HAVE_PYDANTIC = True
+except Exception:  # pragma: no cover - exercised only without pydantic
+    _validate_invoice = None
+    _HAVE_PYDANTIC = False
+    logger.warning("pydantic schema unavailable; falling back to stdlib type checks")
 
 # Required output contract for a structured invoice (key -> acceptable types).
 REQUIRED_FIELDS: Dict[str, Any] = {
@@ -64,7 +77,14 @@ def is_valid_json(raw: str) -> bool:
 
 
 def check_schema(predicted: dict) -> dict:
-    """Verify the required keys are present with the right (coarse) types."""
+    """Verify the required keys are present with the right types.
+
+    Uses pydantic (schema.InvoiceModel) when available for real validation and
+    coercion; otherwise falls back to a coarse stdlib type check.
+    """
+    if _HAVE_PYDANTIC:
+        return _validate_invoice(predicted)
+
     missing: List[str] = []
     wrong_type: List[str] = []
     for key, expected_type in REQUIRED_FIELDS.items():
@@ -76,6 +96,7 @@ def check_schema(predicted: dict) -> dict:
         "missing": missing,
         "wrong_type": wrong_type,
         "valid": not missing and not wrong_type,
+        "errors": [],
     }
 
 
@@ -196,8 +217,15 @@ def score_invoice(
         hall = hallucination_check(predicted, source_text)
         result["hallucination"] = hall
         headline.append(1.0 - hall["rate"])
+        if hall["rate"] > 0:
+            logger.warning("ungrounded values for %s: %s",
+                           predicted.get("invoice_id") or "?", hall["unsupported_values"])
 
     result["overall"] = sum(float(x) for x in headline) / len(headline)
+    if not schema["valid"]:
+        logger.info("schema invalid for %s: missing=%s wrong_type=%s",
+                    predicted.get("invoice_id") or "?", schema["missing"], schema["wrong_type"])
+    logger.debug("scored %s -> overall=%.3f", predicted.get("invoice_id") or "?", result["overall"])
     return result
 
 
