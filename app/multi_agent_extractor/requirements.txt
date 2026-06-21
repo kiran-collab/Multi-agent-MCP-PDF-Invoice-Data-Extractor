@@ -6,7 +6,7 @@ google-adk>=0.2.0
 a2a-sdk>=0.2.0
 
 # MCP client for talking to the Box MCP server
-mcp>=1.0.0
+mcp>=1.28.0
 
 # A2A server runtime
 uvicorn>=0.30.0
