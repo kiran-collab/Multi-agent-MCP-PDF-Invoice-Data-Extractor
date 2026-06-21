@@ -8,5 +8,5 @@ pydantic>=2.0
 #   pip install -r app/multi_agent_extractor/requirements.txt # for run_multi_agent_eval.py
 #
 # Optional integrations:
-pytest>=8.0        # python -m pytest evals/test_scorers.py
+pytest>=9.1.1        # python -m pytest evals/test_scorers.py
 # langfuse>=2.0     # uncomment for Trace.export_langfuse() trace dashboards
