@@ -21,6 +21,6 @@ google-genai>=0.3.0
 pypdf>=4.0.0
 
 # app/multi_agent_extractor
-google-adk>=0.2.0
+google-adk>=2.3.0
 a2a-sdk>=0.2.0
 uvicorn>=0.30.0
