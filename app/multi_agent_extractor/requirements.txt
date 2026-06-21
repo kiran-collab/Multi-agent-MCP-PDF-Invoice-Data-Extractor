@@ -9,4 +9,4 @@ a2a-sdk>=0.2.0
 mcp>=1.0.0
 
 # A2A server runtime
-uvicorn>=0.30.0
+uvicorn>=0.49.0
