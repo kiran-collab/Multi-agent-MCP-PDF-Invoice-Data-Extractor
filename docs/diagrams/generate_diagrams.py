@@ -131,7 +131,8 @@ class SVG:
         )
         self.text(mx, my + 3, label, size=12, color="#3A424E")
 
-    def render(self):
+    def render(self, trim_top=0):
+        h = self.h - trim_top
         defs = (
             '<defs>'
             f'<marker id="ah" markerWidth="11" markerHeight="11" refX="8" refY="3.2" '
@@ -143,10 +144,10 @@ class SVG:
             '</filter></defs>'
         )
         return (
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.w}" height="{self.h}" '
-            f'viewBox="0 0 {self.w} {self.h}" font-family="{FONT}">'
-            f'<rect width="{self.w}" height="{self.h}" fill="#FFFFFF"/>'
-            f'{defs}{"".join(self.body)}</svg>'
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.w}" height="{h}" '
+            f'viewBox="0 0 {self.w} {h}" font-family="{FONT}">'
+            f'<rect width="{self.w}" height="{h}" fill="#FFFFFF"/>'
+            f'{defs}<g transform="translate(0,{-trim_top})">{"".join(self.body)}</g></svg>'
         )
 
 
@@ -162,15 +163,9 @@ def legend(svg: SVG, x, y):
         cx += 30 + 7.4 * len(name) + 26
 
 
-def title(svg: SVG, t, sub):
-    svg.text(40, 42, t, size=21, color="#1B2330", weight="700", anchor="start")
-    svg.text(40, 64, sub, size=13.5, color="#6B7480", anchor="start")
-
-
 # --------------------------------------------------------------------------
 def app1():
     s = SVG(1180, 320)
-    title(s, "App 1 — local_extractor", "In-process linear pipeline; the only external call is the LLM.")
     y = 150
     pdf = Node(40, y - 37, 190, 74, ["Local PDF", "folder"], "io")
     read = Node(285, y - 37, 190, 74, ["Read & extract", "text"], "app")
@@ -184,13 +179,11 @@ def app1():
     s.arrow(llm.right, agg.left, "Invoice JSON")
     s.arrow(agg.right, out.left, "ClientReport")
     legend(s, 40, 285)
-    return "app1_local_extractor.svg", s.render()
+    return "app1_local_extractor.svg", s.render(trim_top=85)
 
 
 def app2():
     s = SVG(1040, 600)
-    title(s, "App 2 — mcp_extractor",
-          "File discovery & text extraction delegated to a Box MCP server; the app is a thin driver.")
     user = Node(40, 200, 190, 64, ["python", "mcp_invoice_app.py"], "io")
     drv = Node(320, 160, 210, 150, ["process_box_folder", "", "(pipeline driver)"], "app")
     # Box MCP server (tools stacked), services to the right of the driver
@@ -211,13 +204,11 @@ def app2():
     s.arrow(drv.bottom, agg.top)
     s.arrow(agg.bottom, out.top, "reports")
     legend(s, 40, 575)
-    return "app2_mcp_extractor.svg", s.render()
+    return "app2_mcp_extractor.svg", s.render(trim_top=82)
 
 
 def app3():
     s = SVG(1200, 760)
-    title(s, "App 3 — multi_agent_extractor",
-          "Three ADK LlmAgents over A2A; both sub-agents reach Box via the shared MCP server. Numbers trace the sequence.")
     user = Node(490, 92, 220, 60, ["a2a_client.py", "(box folder id)"], "io")
     # orchestrator
     s.container(360, 188, 470, 118, "Orchestrator Agent · :8000")
@@ -259,13 +250,11 @@ def app3():
     # 9: build_reports -> out
     s.arrow(br.right, out.left, "9 · reports")
     legend(s, 40, 735)
-    return "app3_multi_agent_extractor.svg", s.render()
+    return "app3_multi_agent_extractor.svg", s.render(trim_top=64)
 
 
 def eval_pipeline():
     s = SVG(1240, 660)
-    title(s, "Evaluation Pipeline — evals/",
-          "Golden dataset → run app → validate & score → results → report. The --mock path scores baked predictions offline.")
     gd = Node(40, 200, 180, 74, ["golden_dataset", ".json"], "io")
     run = Node(280, 198, 210, 78, ["Eval runner", "run_*_eval.py"], "app")
     # app under test
@@ -300,7 +289,7 @@ def eval_pipeline():
     s.arrow(results.bottom, report.top)
     s.arrow(report.bottom, table.top, "render")
     legend(s, 40, 625)
-    return "eval_pipeline.svg", s.render()
+    return "eval_pipeline.svg", s.render(trim_top=122)
 
 
 def main():
