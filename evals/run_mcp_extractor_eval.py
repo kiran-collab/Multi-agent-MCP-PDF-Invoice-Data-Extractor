@@ -1,7 +1,7 @@
 """
-Evaluation runner for app2 (MCP-based invoice processing).
+Evaluation runner for mcp_extractor (MCP-based invoice processing).
 
-It exercises the real app2 pipeline per golden case:
+It exercises the real mcp_extractor pipeline per golden case:
 
     box_mcp_client.extract_text(box_file_id)        # MCP text extraction
     llm_extraction.extract_invoice_fields(text, …)  # Gemini -> structured Invoice
@@ -13,13 +13,13 @@ recall, hallucination rate, and empty-text handling.
 Usage:
     # Real run — requires GOOGLE_API_KEY, a Box MCP server, BOX_DEVELOPER_TOKEN,
     # and real box_file_id values in golden_dataset.json:
-    python evals/run_app2_eval.py
+    python evals/run_mcp_extractor_eval.py
 
     # Offline smoke test — no Box / Gemini; scores each case's `mock_predicted`
     # to verify the scorers + reporting wiring end to end:
-    python evals/run_app2_eval.py --mock
+    python evals/run_mcp_extractor_eval.py --mock
 
-Results are written to evals/results/app2_eval_results.json.
+Results are written to evals/results/mcp_extractor_eval_results.json.
 """
 
 from __future__ import annotations
@@ -38,16 +38,16 @@ sys.path.insert(0, str(HERE))  # so `import scorers` / `import tracing` work
 from scorers import aggregate, score_invoice  # noqa: E402
 from tracing import TraceLog  # noqa: E402
 
-logger = logging.getLogger("evals.app2")
+logger = logging.getLogger("evals.mcp_extractor")
 
 
 def _load_dataset() -> list:
     return json.loads((HERE / "golden_dataset.json").read_text())
 
 
-def _import_app2():
-    """Put app2/ on sys.path and import its modules (bare imports inside them)."""
-    sys.path.insert(0, str(ROOT / "app2"))
+def _import_mcp_extractor():
+    """Put mcp_extractor/ on sys.path and import its modules (bare imports inside them)."""
+    sys.path.insert(0, str(ROOT / "app" / "mcp_extractor"))
     import box_mcp_client  # type: ignore
     import llm_extraction  # type: ignore
 
@@ -55,19 +55,19 @@ def _import_app2():
 
 
 async def run_real(dataset: list, traces: TraceLog) -> list:
-    box_mcp_client, llm_extraction = _import_app2()
+    box_mcp_client, llm_extraction = _import_mcp_extractor()
     results = []
     for i, case in enumerate(dataset):
         name = case["file_name"]
         logger.info("[%d/%d] processing %s (box_file_id=%s)",
                     i + 1, len(dataset), name, case["box_file_id"])
-        tr = traces.new(f"app2-{i:03d}", file_name=name)
+        tr = traces.new(f"mcp_extractor-{i:03d}", file_name=name)
         record: dict = {"file_name": name, "expected": case["expected"]}
 
         text = await box_mcp_client.extract_text(case["box_file_id"])
         if not text.strip():
             logger.warning("empty MCP text for %s; skipping", name)
-            # Empty-text handling: app2 skips these; record it as a handled skip.
+            # Empty-text handling: mcp_extractor skips these; record it as a handled skip.
             tr.step("BoxMCP", "extract_text", "empty", chars=0)
             record.update({"skipped": True, "reason": "empty_text", "scores": None})
             results.append(record)
@@ -115,7 +115,7 @@ def run_mock(dataset: list) -> list:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Evaluate app2 invoice extraction.")
+    ap = argparse.ArgumentParser(description="Evaluate mcp_extractor invoice extraction.")
     ap.add_argument("--mock", action="store_true",
                     help="Offline: score mock_predicted instead of calling Box/Gemini.")
     ap.add_argument("--log-level", default="INFO",
@@ -129,7 +129,7 @@ def main() -> None:
 
     dataset = _load_dataset()
     traces = TraceLog()
-    logger.info("app2 eval starting: %d case(s), mode=%s",
+    logger.info("mcp_extractor eval starting: %d case(s), mode=%s",
                 len(dataset), "mock" if args.mock else "real")
 
     if args.mock:
@@ -139,12 +139,12 @@ def main() -> None:
 
     out_dir = HERE / "results"
     out_dir.mkdir(exist_ok=True)
-    (out_dir / "app2_eval_results.json").write_text(json.dumps(results, indent=2))
+    (out_dir / "mcp_extractor_eval_results.json").write_text(json.dumps(results, indent=2))
     if traces.traces:
-        traces.save(out_dir / "app2_traces.json")
+        traces.save(out_dir / "mcp_extractor_traces.json")
 
     summary = aggregate(results)
-    print(json.dumps({"app": "app2", "mode": "mock" if args.mock else "real",
+    print(json.dumps({"app": "mcp_extractor", "mode": "mock" if args.mock else "real",
                       "summary": summary}, indent=2))
 
 

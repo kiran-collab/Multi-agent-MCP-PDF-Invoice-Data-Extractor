@@ -15,7 +15,7 @@ This folder is fully self-contained.
 ## Files
 
 ```
-app2_mcp/
+mcp_extractor/
 ├── mcp_invoice_app.py     # Entry point: Box folder (via MCP) -> reports
 ├── box_mcp_client.py      # Async MCP client for the Box MCP server
 ├── invoice_models.py      # Invoice / LineItem / ClientReport + aggregation
@@ -68,12 +68,12 @@ Writes `reports/report_<Client>.txt` for each client found.
 
 ## Evaluation
 
-The repo's [`evals/`](../evals/README.md) harness measures this app's extraction
+The repo's [`evals/`](../../evals/README.md) harness measures this app's extraction
 quality (json validity, schema, field accuracy, numeric tolerance, line-item
 recall, hallucination rate, empty-text handling) against a golden dataset:
 
 ```bash
-python evals/run_app2_eval.py --mock   # offline smoke test (no Box/Gemini)
-python evals/run_app2_eval.py          # real run (needs Box MCP + GOOGLE_API_KEY)
+python evals/run_mcp_extractor_eval.py --mock   # offline smoke test (no Box/Gemini)
+python evals/run_mcp_extractor_eval.py          # real run (needs Box MCP + GOOGLE_API_KEY)
 python evals/report_eval_results.py
 ```

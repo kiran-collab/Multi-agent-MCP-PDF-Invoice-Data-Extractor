@@ -1,5 +1,5 @@
 """
-Evaluation runner for app3 (A2A multi-agent system).
+Evaluation runner for multi_agent (A2A multi-agent system).
 
 App3 is evaluated at two levels — pick with --mode:
 
@@ -21,11 +21,11 @@ App3 is evaluated at two levels — pick with --mode:
                         report scorer. No external calls.
 
 Usage:
-    python evals/run_app3_eval.py --mode component
-    python evals/run_app3_eval.py --mode e2e --folder-id 0
-    python evals/run_app3_eval.py --mode mock
+    python evals/run_multi_agent_eval.py --mode component
+    python evals/run_multi_agent_eval.py --mode e2e --folder-id 0
+    python evals/run_multi_agent_eval.py --mode mock
 
-Results -> evals/results/app3_eval_results.json (+ app3_traces.json).
+Results -> evals/results/multi_agent_eval_results.json (+ multi_agent_traces.json).
 """
 
 from __future__ import annotations
@@ -45,26 +45,26 @@ sys.path.insert(0, str(HERE))
 from scorers import aggregate, score_invoice, score_report_text  # noqa: E402
 from tracing import TraceLog  # noqa: E402
 
-logger = logging.getLogger("evals.app3")
+logger = logging.getLogger("evals.multi_agent")
 
 
 def _load_dataset() -> list:
     return json.loads((HERE / "golden_dataset.json").read_text())
 
 
-def _import_app3():
-    """Put app3/ on sys.path and import the agent server modules.
+def _import_multi_agent():
+    """Put multi_agent/ on sys.path and import the agent server modules.
 
     Importing these constructs LlmAgent / to_a2a_app at module load, so it needs
     google-adk installed. Raised errors are surfaced with a clear hint.
     """
-    sys.path.insert(0, str(ROOT / "app3"))
+    sys.path.insert(0, str(ROOT / "app" / "multi_agent_extractor"))
     try:
         import extraction_agent_server  # type: ignore
         import files_agent_server  # type: ignore
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(
-            "Could not import app3 agent servers (needs `google-adk`, `mcp`, and "
+            "Could not import multi_agent agent servers (needs `google-adk`, `mcp`, and "
             f"`google-genai` installed): {exc}"
         ) from exc
     return files_agent_server, extraction_agent_server
@@ -72,13 +72,13 @@ def _import_app3():
 
 # --- component mode -------------------------------------------------------
 async def run_component(dataset: list, traces: TraceLog) -> list:
-    files_agent_server, extraction_agent_server = _import_app3()
+    files_agent_server, extraction_agent_server = _import_multi_agent()
     results = []
     for i, case in enumerate(dataset):
         name = case["file_name"]
         logger.info("[%d/%d] ExtractionAgent.extract_invoice %s (box_file_id=%s)",
                     i + 1, len(dataset), name, case["box_file_id"])
-        tr = traces.new(f"app3-comp-{i:03d}", file_name=name)
+        tr = traces.new(f"multi_agent-comp-{i:03d}", file_name=name)
         record: dict = {"file_name": name, "expected": case["expected"]}
 
         raw = await extraction_agent_server.extract_invoice(case["box_file_id"], name)
@@ -107,8 +107,8 @@ async def run_component(dataset: list, traces: TraceLog) -> list:
 
 async def eval_file_discovery(folder_id: str, expected_names: list, traces: TraceLog) -> dict:
     """Files Agent: does list_invoices return exactly the expected file names?"""
-    files_agent_server, _ = _import_app3()
-    tr = traces.new("app3-files", folder_id=folder_id)
+    files_agent_server, _ = _import_multi_agent()
+    tr = traces.new("multi_agent-files", folder_id=folder_id)
     raw = await files_agent_server.list_invoices(folder_id)
     found = [f.get("name") for f in json.loads(raw)]
     tr.step("FilesAgent", "list_invoices", "success", output_count=len(found))
@@ -124,10 +124,10 @@ async def eval_file_discovery(folder_id: str, expected_names: list, traces: Trac
 
 # --- e2e mode -------------------------------------------------------------
 async def run_e2e(dataset: list, folder_id: str, traces: TraceLog) -> list:
-    sys.path.insert(0, str(ROOT / "app3"))
+    sys.path.insert(0, str(ROOT / "app" / "multi_agent_extractor"))
     from a2a.client import A2AClient  # type: ignore
 
-    tr = traces.new("app3-e2e", folder_id=folder_id)
+    tr = traces.new("multi_agent-e2e", folder_id=folder_id)
     url = os.getenv("ORCHESTRATOR_URL", "http://localhost:8000")
     client = A2AClient(url=url)
     prompt = (
@@ -182,7 +182,7 @@ def run_mock(dataset: list) -> list:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Evaluate app3 multi-agent system.")
+    ap = argparse.ArgumentParser(description="Evaluate multi_agent multi-agent system.")
     ap.add_argument("--mode", choices=["component", "e2e", "mock"], default="component")
     ap.add_argument("--folder-id", default=os.getenv("EVAL_FOLDER_ID", "0"))
     ap.add_argument("--log-level", default="INFO",
@@ -196,7 +196,7 @@ def main() -> None:
 
     dataset = _load_dataset()
     traces = TraceLog()
-    logger.info("app3 eval starting: %d case(s), mode=%s", len(dataset), args.mode)
+    logger.info("multi_agent eval starting: %d case(s), mode=%s", len(dataset), args.mode)
 
     if args.mode == "mock":
         results = run_mock(dataset)
@@ -207,14 +207,14 @@ def main() -> None:
 
     out_dir = HERE / "results"
     out_dir.mkdir(exist_ok=True)
-    (out_dir / "app3_eval_results.json").write_text(json.dumps(results, indent=2))
+    (out_dir / "multi_agent_eval_results.json").write_text(json.dumps(results, indent=2))
     if traces.traces:
-        traces.save(out_dir / "app3_traces.json")
+        traces.save(out_dir / "multi_agent_traces.json")
 
     invoice_results = [r for r in results if "scores" in r]
     summary = aggregate(invoice_results) if invoice_results else {}
     report = next((r["report_score"] for r in results if "report_score" in r), None)
-    print(json.dumps({"app": "app3", "mode": args.mode,
+    print(json.dumps({"app": "multi_agent", "mode": args.mode,
                       "summary": summary, "report_score": report}, indent=2))
 
 

@@ -4,8 +4,8 @@
 pydantic>=2.0
 
 # REAL runs additionally need the target app's dependencies:
-#   pip install -r app2/requirements.txt   # for run_app2_eval.py
-#   pip install -r app3/requirements.txt   # for run_app3_eval.py
+#   pip install -r app/mcp_extractor/requirements.txt        # for run_mcp_extractor_eval.py
+#   pip install -r app/multi_agent_extractor/requirements.txt # for run_multi_agent_eval.py
 #
 # Optional integrations:
 pytest>=8.0        # python -m pytest evals/test_scorers.py

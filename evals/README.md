@@ -1,21 +1,21 @@
 # Evaluation pipeline
 
 A lightweight, dependency-light evaluation harness for the invoice extractors in
-this repo. It validates **invoice-extraction quality** (app2 + app3) and
-**multi-agent workflow reliability** (app3), using a golden dataset of expected
-outputs.
+this repo. It validates **invoice-extraction quality** (`mcp_extractor` +
+`multi_agent_extractor`) and **multi-agent workflow reliability**
+(`multi_agent_extractor`), using a golden dataset of expected outputs.
 
 ```
 evals/
-├── golden_dataset.json       # expected outputs (+ source_text, mock_predicted)
-├── schema.py                 # pydantic models for output-contract validation
-├── scorers.py                # metric functions (offline-testable)
-├── tracing.py                # trace-based agent logging (+ optional Langfuse)
-├── run_app2_eval.py          # app2 runner (real / --mock)
-├── run_app3_eval.py          # app3 runner (component / e2e / mock)
-├── report_eval_results.py    # render saved results as a metric table
-├── test_scorers.py           # offline unit tests for the scorers + schema
-└── results/                  # generated *_eval_results.json + *_traces.json
+├── golden_dataset.json             # expected outputs (+ source_text, mock_predicted)
+├── schema.py                       # pydantic models for output-contract validation
+├── scorers.py                      # metric functions (offline-testable)
+├── tracing.py                      # trace-based agent logging (+ optional Langfuse)
+├── run_mcp_extractor_eval.py       # app/mcp_extractor runner (real / --mock)
+├── run_multi_agent_eval.py         # app/multi_agent_extractor runner (component / e2e / mock)
+├── report_eval_results.py          # render saved results as a metric table
+├── test_scorers.py                 # offline unit tests for the scorers + schema
+└── results/                        # generated *_eval_results.json + *_traces.json
 ```
 
 **Validation** — `schema.py` defines pydantic v2 models (`InvoiceModel`,
@@ -39,7 +39,7 @@ trace writes). The runners configure it with `--log-level DEBUG|INFO|WARNING|ERR
 | numeric tolerance | total amount compared with `abs_tol=0.01` | `score_invoice → total_amount_match` |
 | line item recall / precision | all purchased products extracted, none invented | `score_line_items` |
 | hallucination rate | predicted scalars grounded in the source text ("Do not invent data") | `hallucination_check` |
-| empty-text handling | empty MCP text is skipped (app2) / returns error JSON (app3) | runner logic |
+| empty-text handling | empty MCP text is skipped / returns error JSON | runner logic |
 | file discovery | Files Agent returns exactly the expected invoice files | `eval_file_discovery` |
 | delegation correctness | orchestrator runs Files → Extraction → reporting in order | `Trace.delegation_ok` |
 | report correctness | per-client report names + summed totals | `score_report_text` |
@@ -50,10 +50,10 @@ signals); `aggregate` rolls per-case results into dataset-level averages.
 ## Quick start (offline — no Box / Gemini needed)
 
 ```bash
-python evals/test_scorers.py            # unit-test the metrics
-python evals/run_app2_eval.py --mock    # score mock_predicted from the dataset
-python evals/run_app3_eval.py --mode mock
-python evals/report_eval_results.py     # pretty metric table
+python evals/test_scorers.py                    # unit-test the metrics
+python evals/run_mcp_extractor_eval.py --mock   # score mock_predicted from the dataset
+python evals/run_multi_agent_eval.py --mode mock
+python evals/report_eval_results.py             # pretty metric table
 ```
 
 The `--mock` paths score the `mock_predicted` values baked into
@@ -63,35 +63,35 @@ service. They exercise every metric and the report scorer end to end.
 ## Real runs
 
 Real runs call the actual app pipelines, so they need that app's dependencies
-(`pip install -r appN/requirements.txt`), a `GOOGLE_API_KEY`, a Box MCP server
-with `BOX_DEVELOPER_TOKEN`, and **real `box_file_id` values** filled into
+(`pip install -r app/<name>/requirements.txt`), a `GOOGLE_API_KEY`, a Box MCP
+server with `BOX_DEVELOPER_TOKEN`, and **real `box_file_id` values** filled into
 `golden_dataset.json` (replace the `REPLACE_WITH_REAL_BOX_FILE_ID` placeholders).
 
-**app2** — runs `box_mcp_client.extract_text` → `llm_extraction.extract_invoice_fields`:
+**mcp_extractor** — runs `box_mcp_client.extract_text` → `llm_extraction.extract_invoice_fields`:
 
 ```bash
-python evals/run_app2_eval.py
+python evals/run_mcp_extractor_eval.py
 ```
 
-**app3** — two levels:
+**multi_agent_extractor** — two levels:
 
 ```bash
 # component: call each agent's work function directly (needs google-adk + Box + Gemini,
 # but NO running servers)
-python evals/run_app3_eval.py --mode component
+python evals/run_multi_agent_eval.py --mode component
 
 # e2e: drive the orchestrator over A2A (needs all three servers running:
-#   python app3/files_agent_server.py        # 8001
-#   python app3/extraction_agent_server.py   # 8002
-#   python app3/orchestrator_agent_server.py # 8000
+#   python app/multi_agent_extractor/files_agent_server.py        # 8001
+#   python app/multi_agent_extractor/extraction_agent_server.py   # 8002
+#   python app/multi_agent_extractor/orchestrator_agent_server.py # 8000
 # ), then score the rendered per-client report text
-python evals/run_app3_eval.py --mode e2e --folder-id <box_folder_id>
+python evals/run_multi_agent_eval.py --mode e2e --folder-id <box_folder_id>
 ```
 
 ## Tracing
 
 `tracing.py` records each agent/tool step in a JSON shape suited to trace-based
-agent evaluation, written to `results/appN_traces.json`. If `langfuse` is
+agent evaluation, written to `results/<app>_traces.json`. If `langfuse` is
 installed and `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` are set,
 `Trace.export_langfuse()` also pushes traces to Langfuse; otherwise it is a
 no-op, so the harness stays fully offline by default.

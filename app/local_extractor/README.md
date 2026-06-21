@@ -15,7 +15,7 @@ This folder is fully self-contained.
 ## Files
 
 ```
-app1_local/
+local_extractor/
 ├── local_invoice_app.py    # Entry point: local PDF folder -> reports
 ├── invoice_models.py       # Invoice / LineItem / ClientReport + aggregation
 ├── llm_extraction.py       # LLM field-extraction (prompt + JSON parsing)

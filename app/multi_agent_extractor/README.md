@@ -16,7 +16,7 @@ This folder is fully self-contained.
 ## Files
 
 ```
-app3_multiagent/
+multi_agent_extractor/
 ├── a2a_client.py                   # A2A client: sends the user's request
 ├── orchestrator_agent_server.py    # A2A server: coordinates sub-agents + builds reports
 ├── files_agent_server.py           # A2A server: lists invoices in a Box folder
@@ -106,14 +106,14 @@ the aggregated per-client report.
 
 ## Evaluation
 
-The repo's [`evals/`](../evals/README.md) harness evaluates this multi-agent
+The repo's [`evals/`](../../evals/README.md) harness evaluates this multi-agent
 system at two levels — each agent (Files / Extraction) on its own work function,
 and the full orchestrated workflow end-to-end — plus trace-based delegation and
 per-client report correctness:
 
 ```bash
-python evals/run_app3_eval.py --mode mock        # offline smoke test
-python evals/run_app3_eval.py --mode component   # per-agent (needs google-adk + Box + Gemini)
-python evals/run_app3_eval.py --mode e2e --folder-id <id>   # full A2A workflow (all 3 servers up)
+python evals/run_multi_agent_eval.py --mode mock        # offline smoke test
+python evals/run_multi_agent_eval.py --mode component   # per-agent (needs google-adk + Box + Gemini)
+python evals/run_multi_agent_eval.py --mode e2e --folder-id <id>   # full A2A workflow (all 3 servers up)
 python evals/report_eval_results.py
 ```

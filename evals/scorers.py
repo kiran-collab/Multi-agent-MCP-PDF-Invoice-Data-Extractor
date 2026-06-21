@@ -13,7 +13,7 @@ Metrics implemented (see evals/README.md for the rationale of each):
   - numeric tolerance        score_invoice -> total_amount_match
   - line item recall/prec.   score_invoice -> line_items.*
   - hallucination rate       hallucination_check (needs source text)
-  - report correctness       score_report_text (app3 end-to-end)
+  - report correctness       score_report_text (multi-agent end-to-end)
 """
 
 from __future__ import annotations
@@ -229,7 +229,7 @@ def score_invoice(
     return result
 
 
-# --- report-level score (app3 end-to-end) ---------------------------------
+# --- report-level score (multi-agent end-to-end) ---------------------------------
 _NUM_RE = re.compile(r"[-+]?\d[\d,]*\.?\d*")
 
 

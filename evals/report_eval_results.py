@@ -1,7 +1,7 @@
 """
 Render a human-readable summary from saved eval result files.
 
-Reads evals/results/app2_eval_results.json and app3_eval_results.json (whichever
+Reads evals/results/mcp_extractor_eval_results.json and multi_agent_eval_results.json (whichever
 exist) and prints a per-metric table plus per-case overall scores.
 
 Usage:
@@ -70,13 +70,13 @@ def _report_one(path: Path) -> None:
 
 def main() -> None:
     found = False
-    for name in ("app2_eval_results.json", "app3_eval_results.json"):
+    for name in ("mcp_extractor_eval_results.json", "multi_agent_eval_results.json"):
         path = RESULTS / name
         if path.exists():
             _report_one(path)
             found = True
     if not found:
-        print("No result files found. Run run_app2_eval.py / run_app3_eval.py first.")
+        print("No result files found. Run the run_*_eval.py scripts first.")
 
 
 if __name__ == "__main__":
