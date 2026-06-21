@@ -3,7 +3,7 @@ google-genai>=0.3.0
 
 # Agent framework (ADK) + A2A protocol
 google-adk>=0.2.0
-a2a-sdk>=0.2.0
+a2a-sdk>=1.1.0
 
 # MCP client for talking to the Box MCP server
 mcp>=1.0.0
