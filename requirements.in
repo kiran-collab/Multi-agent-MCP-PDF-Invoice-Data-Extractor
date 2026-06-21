@@ -1,0 +1,26 @@
+# Direct dependencies across all apps + the eval harness (the union of the
+# per-folder requirements.txt files). This is the INPUT to the lockfile.
+#
+# Generate a fully pinned, hashed lockfile for reproducible installs with:
+#
+#     make lock        # -> requirements.lock (pip-compile --generate-hashes)
+#
+# then install reproducibly with:
+#
+#     pip install --require-hashes -r requirements.lock
+#
+# The lockfile is generated on a machine with network access (it resolves the
+# full transitive tree against PyPI) and committed; it is NOT produced here.
+
+# Shared / eval core
+pydantic>=2.0
+
+# app/mcp_extractor + app/multi_agent_extractor
+mcp>=1.0.0
+google-genai>=0.3.0
+pypdf>=4.0.0
+
+# app/multi_agent_extractor
+google-adk>=0.2.0
+a2a-sdk>=0.2.0
+uvicorn>=0.30.0

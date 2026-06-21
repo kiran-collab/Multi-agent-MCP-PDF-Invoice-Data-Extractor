@@ -5,6 +5,17 @@ __pycache__/
 .venv/
 venv/
 env/
+build/
+dist/
+
+# Tooling caches / reports
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.nox/
+.coverage
+coverage.xml
+htmlcov/
 
 # Env / secrets
 .env

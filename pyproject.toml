@@ -1,0 +1,106 @@
+# Tooling configuration for the invoice-extractors repo.
+#
+# This project is intentionally NOT an importable package: the three apps under
+# app/ are self-contained and deliberately reuse module names (invoice_models,
+# llm_extraction, ...). We declare an empty package set so that
+# `pip install -e ".[dev]"` installs the dev toolchain + shared deps only,
+# without trying to package the (collision-prone) app code.
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "invoice-extractors"
+version = "0.1.0"
+description = "Progressively decoupled PDF invoice data extractors (local, MCP, A2A multi-agent) plus an evaluation harness."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Kiran Davuluri", email = "dkiran238@gmail.com" }]
+keywords = ["invoice", "mcp", "a2a", "multi-agent", "llm", "evaluation"]
+dependencies = ["pydantic>=2.0"]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "bandit[toml]>=1.7",
+  "pip-audit>=2.7",
+  "pre-commit>=3.7",
+  "nox>=2024.4.15",
+]
+
+[project.urls]
+Repository = "https://github.com/kiran-collab/Multi-agent-MCP-PDF-Invoice-Data-Extractor"
+
+[tool.setuptools]
+packages = []
+py-modules = []
+
+# --- Ruff: lint + format (replaces flake8 + black + isort) ----------------
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["docs", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]
+ignore = ["E501"]  # long lines (strings/prompts/URLs) are not auto-wrapped by the formatter
+
+[tool.ruff.lint.per-file-ignores]
+# The eval runners intentionally import after sys.path manipulation.
+"evals/test_scorers.py" = ["E402"]
+"evals/run_mcp_extractor_eval.py" = ["E402"]
+"evals/run_multi_agent_eval.py" = ["E402"]
+"evals/report_eval_results.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# --- mypy: type check the deterministic core (evals/) ---------------------
+# The app/ folders depend heavily on untyped external SDKs and reuse module
+# names across folders, so static typing is focused on the evals/ core. Run
+# `mypy evals`. Apps are linted/formatted but not yet strictly typed.
+[tool.mypy]
+python_version = "3.10"
+mypy_path = "evals"
+explicit_package_bases = true
+namespace_packages = true
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_redundant_casts = true
+no_implicit_optional = true
+
+# --- pytest + coverage ----------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["evals"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["evals"]
+omit = [
+  "evals/run_mcp_extractor_eval.py",   # entry points: require Box/Gemini/A2A
+  "evals/run_multi_agent_eval.py",
+  "evals/report_eval_results.py",
+  "evals/tracing.py",                  # exercised via integration, not unit tests
+  "evals/test_*.py",
+]
+
+[tool.coverage.report]
+# Provisional gate over the unit-tested core (scorers.py + schema.py).
+# Raise this after the first real `make cov` run on a machine with the tools.
+fail_under = 80
+show_missing = true
+exclude_lines = [
+  "pragma: no cover",
+  "if __name__ == .__main__.:",
+  "raise NotImplementedError",
+]
+
+# --- Bandit: Python SAST --------------------------------------------------
+[tool.bandit]
+exclude_dirs = ["docs", "build", "dist"]
+skips = ["B101"]  # assert_used — fine in tests/dev

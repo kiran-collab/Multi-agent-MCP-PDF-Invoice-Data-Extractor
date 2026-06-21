@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # --- GitHub Actions: keeps workflow action versions/SHAs current ---------
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "github-actions"]
+
+  # --- Python: dev toolchain (pyproject) -----------------------------------
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "python"]
+
+  # --- Python: per-app + evals requirements --------------------------------
+  - package-ecosystem: pip
+    directory: "/app/local_extractor"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "python"]
+
+  - package-ecosystem: pip
+    directory: "/app/mcp_extractor"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "python"]
+
+  - package-ecosystem: pip
+    directory: "/app/multi_agent_extractor"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "python"]
+
+  - package-ecosystem: pip
+    directory: "/evals"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "python"]

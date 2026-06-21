@@ -1,0 +1,8 @@
+# Default reviewer for everything. Combine with branch protection on `main`
+# ("Require review from Code Owners") to auto-request and require review.
+* @kiran-collab
+
+# Area owners (extend as the team grows)
+/evals/        @kiran-collab
+/.github/      @kiran-collab
+/docs/         @kiran-collab
