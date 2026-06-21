@@ -17,28 +17,7 @@ This folder is fully self-contained.
 A single process runs a linear pipeline; file access and text extraction happen
 in-process, and the only external call is the LLM.
 
-```mermaid
-flowchart LR
-    PDF["Local PDF folder"]:::io
-
-    subgraph APP["local_invoice_app.py"]
-        direction TB
-        READ["Read &amp; extract text"]:::app
-        AGG["build_client_reports"]:::app
-    end
-
-    LLM["Gemini LLM<br/>extract_invoice_fields"]:::ext
-    OUT["Per-client reports<br/>report_*.txt"]:::io
-
-    PDF -->|"each file"| READ
-    READ -->|"raw text"| LLM
-    LLM -->|"Invoice JSON"| AGG
-    AGG -->|"ClientReport"| OUT
-
-    classDef io fill:#EAF2FF,stroke:#2F6FED,stroke-width:1px,color:#0B2A6B;
-    classDef app fill:#EAF7EE,stroke:#2E9E5B,stroke-width:1px,color:#0B3D1F;
-    classDef ext fill:#FDECEC,stroke:#E0524D,stroke-width:1px,color:#5C0B0A;
-```
+![local_extractor architecture](../../docs/images/app1_local_extractor.png)
 
 ## Files
 

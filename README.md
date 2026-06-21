@@ -32,49 +32,13 @@ local process, to delegating I/O through the **Model Context Protocol (MCP)**, t
 splitting the work across cooperating agents over **Agent-to-Agent (A2A)**. The
 diagrams below share one colour legend.
 
-```mermaid
-flowchart LR
-    IO["Input / Output"]:::io
-    APPC["Application code"]:::app
-    AG["ADK LlmAgent"]:::agent
-    G["Gemini LLM"]:::ext
-    MC["Box MCP tool"]:::mcp
-
-    classDef io fill:#EAF2FF,stroke:#2F6FED,stroke-width:1px,color:#0B2A6B;
-    classDef app fill:#EAF7EE,stroke:#2E9E5B,stroke-width:1px,color:#0B3D1F;
-    classDef agent fill:#F1ECFB,stroke:#7E57C2,stroke-width:1px,color:#3A2A63;
-    classDef ext fill:#FDECEC,stroke:#E0524D,stroke-width:1px,color:#5C0B0A;
-    classDef mcp fill:#FFF6E5,stroke:#E8A317,stroke-width:1px,color:#5C3C00;
-```
-
 ### App 1 — `local_extractor`
 
 A single process reads PDFs from a local folder and runs a linear pipeline.
 File access and text extraction are done **in-process**; the only external call
 is the LLM.
 
-```mermaid
-flowchart LR
-    PDF["Local PDF folder"]:::io
-
-    subgraph APP["local_invoice_app.py"]
-        direction TB
-        READ["Read &amp; extract text"]:::app
-        AGG["build_client_reports"]:::app
-    end
-
-    LLM["Gemini LLM<br/>extract_invoice_fields"]:::ext
-    OUT["Per-client reports<br/>report_*.txt"]:::io
-
-    PDF -->|"each file"| READ
-    READ -->|"raw text"| LLM
-    LLM -->|"Invoice JSON"| AGG
-    AGG -->|"ClientReport"| OUT
-
-    classDef io fill:#EAF2FF,stroke:#2F6FED,stroke-width:1px,color:#0B2A6B;
-    classDef app fill:#EAF7EE,stroke:#2E9E5B,stroke-width:1px,color:#0B3D1F;
-    classDef ext fill:#FDECEC,stroke:#E0524D,stroke-width:1px,color:#5C0B0A;
-```
+![App 1 — local_extractor architecture](docs/images/app1_local_extractor.png)
 
 ### App 2 — `mcp_extractor`
 
@@ -82,38 +46,7 @@ File discovery and text extraction are **delegated to a Box MCP server** over
 stdio; the app becomes a thin pipeline driver. No local PDF parsing or Box API
 code remains — those are MCP tools.
 
-```mermaid
-flowchart LR
-    USER["python mcp_invoice_app.py<br/>(box folder id)"]:::io
-
-    subgraph APP["mcp_invoice_app.py"]
-        direction TB
-        DRV["process_box_folder<br/>(pipeline driver)"]:::app
-        AGG["build_client_reports"]:::app
-    end
-
-    subgraph MCP["Box MCP Server (stdio)"]
-        direction TB
-        T1["list_folder"]:::mcp
-        T2["extract_text"]:::mcp
-    end
-
-    LLM["Gemini LLM<br/>extract_invoice_fields"]:::ext
-    OUT["Per-client reports"]:::io
-
-    USER --> DRV
-    DRV -->|"1: folder_id"| T1
-    T1 -->|"file ids + names"| DRV
-    DRV -->|"2: file_id"| T2
-    T2 -->|"invoice text"| LLM
-    LLM -->|"Invoice JSON"| DRV
-    DRV --> AGG -->|"reports"| OUT
-
-    classDef io fill:#EAF2FF,stroke:#2F6FED,stroke-width:1px,color:#0B2A6B;
-    classDef app fill:#EAF7EE,stroke:#2E9E5B,stroke-width:1px,color:#0B3D1F;
-    classDef ext fill:#FDECEC,stroke:#E0524D,stroke-width:1px,color:#5C0B0A;
-    classDef mcp fill:#FFF6E5,stroke:#E8A317,stroke-width:1px,color:#5C3C00;
-```
+![App 2 — mcp_extractor architecture](docs/images/app2_mcp_extractor.png)
 
 ### App 3 — `multi_agent_extractor`
 
@@ -122,51 +55,7 @@ over A2A. The Orchestrator delegates discovery to the Files Agent and parsing to
 the Extraction Agent; both reach Box through the shared MCP server. Numbers
 trace the orchestration sequence.
 
-```mermaid
-flowchart TB
-    USER["a2a_client.py<br/>(box folder id)"]:::io
-
-    subgraph ORCH["Orchestrator Agent &nbsp;·&nbsp; :8000"]
-        OC["coordinate workflow"]:::agent
-        BR["build_reports (tool)"]:::app
-    end
-
-    subgraph FA["Files Agent &nbsp;·&nbsp; :8001"]
-        LI["list_invoices (tool)"]:::app
-    end
-
-    subgraph EA["Extraction Agent &nbsp;·&nbsp; :8002"]
-        EI["extract_invoice (tool)"]:::app
-    end
-
-    subgraph MCP["Box MCP Server"]
-        M1["list_folder"]:::mcp
-        M2["extract_text"]:::mcp
-    end
-
-    LLM["Gemini LLM"]:::ext
-    OUT["Per-client reports"]:::io
-
-    USER -->|"1: A2A request"| OC
-    OC -->|"2: A2A list files"| LI
-    LI -->|"3: folder_id"| M1
-    M1 -->|"file ids + names"| LI
-    LI -->|"4: files"| OC
-    OC -->|"5: A2A extract · per file"| EI
-    EI -->|"6: file_id"| M2
-    M2 -->|"text"| EI
-    EI -->|"7: text"| LLM
-    LLM -->|"Invoice JSON"| EI
-    EI -->|"8: Invoice JSON"| OC
-    OC -->|"9: aggregate"| BR
-    BR -->|"reports"| OUT
-
-    classDef io fill:#EAF2FF,stroke:#2F6FED,stroke-width:1px,color:#0B2A6B;
-    classDef app fill:#EAF7EE,stroke:#2E9E5B,stroke-width:1px,color:#0B3D1F;
-    classDef agent fill:#F1ECFB,stroke:#7E57C2,stroke-width:1px,color:#3A2A63;
-    classDef ext fill:#FDECEC,stroke:#E0524D,stroke-width:1px,color:#5C0B0A;
-    classDef mcp fill:#FFF6E5,stroke:#E8A317,stroke-width:1px,color:#5C3C00;
-```
+![App 3 — multi_agent_extractor architecture](docs/images/app3_multi_agent_extractor.png)
 
 > All three agents are LLM-driven (`google.adk` `LlmAgent`); the Gemini node is
 > shown once at the extraction step for clarity.
