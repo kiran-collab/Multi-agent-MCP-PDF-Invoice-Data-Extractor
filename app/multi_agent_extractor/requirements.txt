@@ -1,5 +1,5 @@
 # LLM client for field extraction
-google-genai>=0.3.0
+google-genai>=2.9.0
 
 # Agent framework (ADK) + A2A protocol
 google-adk>=0.2.0
