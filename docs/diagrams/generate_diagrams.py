@@ -98,24 +98,26 @@ class SVG:
             f'font-weight="600" fill="{CONTAINER_LBL}" text-anchor="start">{self._esc(label)}</text>'
         )
 
-    def arrow(self, p1, p2, label=None, both=False, mid=None):
+    def arrow(self, p1, p2, label=None, both=False, mid=None, dash=None):
         x1, y1 = p1
         x2, y2 = p2
         start = ' marker-start="url(#ahs)"' if both else ""
+        dd = f' stroke-dasharray="{dash}"' if dash else ""
         self.body.append(
             f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{ARROW}" '
-            f'stroke-width="1.8" marker-end="url(#ah)"{start}/>'
+            f'stroke-width="1.8" marker-end="url(#ah)"{start}{dd}/>'
         )
         if label:
             mx, my = mid if mid else ((x1 + x2) / 2, (y1 + y2) / 2)
             self._label(mx, my, label)
 
-    def elbow(self, pts, label=None, both=False, lbl_at=None):
+    def elbow(self, pts, label=None, both=False, lbl_at=None, dash=None):
         d = " ".join(f"{x},{y}" for x, y in pts)
         start = ' marker-start="url(#ahs)"' if both else ""
+        dd = f' stroke-dasharray="{dash}"' if dash else ""
         self.body.append(
             f'<polyline points="{d}" fill="none" stroke="{ARROW}" stroke-width="1.8" '
-            f'marker-end="url(#ah)"{start}/>'
+            f'marker-end="url(#ah)"{start}{dd}/>'
         )
         if label:
             mx, my = lbl_at if lbl_at else pts[len(pts) // 2]
@@ -260,9 +262,50 @@ def app3():
     return "app3_multi_agent_extractor.svg", s.render()
 
 
+def eval_pipeline():
+    s = SVG(1240, 660)
+    title(s, "Evaluation Pipeline — evals/",
+          "Golden dataset → run app → validate & score → results → report. The --mock path scores baked predictions offline.")
+    gd = Node(40, 200, 180, 74, ["golden_dataset", ".json"], "io")
+    run = Node(280, 198, 210, 78, ["Eval runner", "run_*_eval.py"], "app")
+    # app under test
+    s.container(548, 178, 232, 120, "App under test")
+    sut = Node(568, 208, 192, 64, ["app pipeline", "Box MCP + Gemini"], "app")
+    score = Node(842, 198, 180, 78, ["scorers.py", "metrics"], "app")
+    results = Node(1042, 200, 178, 74, ["results/", "*_eval_results.json"], "io")
+    # validation feeding the scorer
+    schema = Node(842, 360, 180, 64, ["schema.py", "pydantic validation"], "app")
+    # tracing branch
+    trace = Node(280, 360, 210, 60, ["tracing.py"], "app")
+    traces = Node(280, 470, 210, 64, ["results/", "*_traces.json"], "io")
+    # reporting tail
+    report = Node(1012, 360, 208, 60, ["report_eval_results.py"], "app")
+    table = Node(1012, 470, 208, 64, ["metric summary", "table"], "io")
+    for n in (gd, run, sut, score, results, schema, trace, traces, report, table):
+        s.node(n)
+
+    s.arrow(gd.right, run.left, "cases")
+    s.arrow(run.right, sut.left, "invoke · predicted", both=True, mid=(519, 168))
+    s.arrow((sut.x + sut.w, sut.cy), score.left, "predicted + expected", both=False, mid=(812, 168))
+    s.arrow(score.right, results.left, "scores")
+    # --mock dashed bypass over the top
+    s.elbow([(run.cx, run.y), (run.cx, 150), (score.cx, 150), (score.cx, score.y)],
+            "--mock · mock_predicted (offline)", dash="6 5", lbl_at=(640, 150))
+    # validation up into scorer
+    s.arrow(schema.top, (score.cx, score.y + score.h), "schema validity", both=True)
+    # tracing branch
+    s.arrow(run.bottom, trace.top, "steps")
+    s.arrow(trace.bottom, traces.top)
+    # reporting tail
+    s.arrow(results.bottom, report.top)
+    s.arrow(report.bottom, table.top, "render")
+    legend(s, 40, 625)
+    return "eval_pipeline.svg", s.render()
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    for fn in (app1, app2, app3):
+    for fn in (app1, app2, app3, eval_pipeline):
         name, svg = fn()
         (OUT / name).write_text(svg)
         print("wrote", OUT / name)

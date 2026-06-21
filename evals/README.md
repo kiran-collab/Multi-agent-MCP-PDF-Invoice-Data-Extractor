@@ -5,6 +5,8 @@ this repo. It validates **invoice-extraction quality** (`mcp_extractor` +
 `multi_agent_extractor`) and **multi-agent workflow reliability**
 (`multi_agent_extractor`), using a golden dataset of expected outputs.
 
+![Evaluation pipeline architecture](../docs/images/eval_pipeline.png)
+
 ```
 evals/
 ├── golden_dataset.json             # expected outputs (+ source_text, mock_predicted)
