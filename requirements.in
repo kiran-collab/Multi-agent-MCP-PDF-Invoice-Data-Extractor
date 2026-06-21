@@ -22,5 +22,5 @@ pypdf>=4.0.0
 
 # app/multi_agent_extractor
 google-adk>=0.2.0
-a2a-sdk>=0.2.0
+a2a-sdk>=1.1.0
 uvicorn>=0.30.0
