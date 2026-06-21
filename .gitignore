@@ -20,3 +20,6 @@ env/
 # Eval outputs (regenerated)
 evals/results/*.json
 evals/results/*_traces.json
+
+# Diagram generator (kept locally, not tracked)
+/docs/diagrams/generate_diagrams.py
