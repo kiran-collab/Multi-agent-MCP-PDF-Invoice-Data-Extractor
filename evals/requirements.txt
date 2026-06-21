@@ -1,7 +1,7 @@
 # Eval harness dependencies. pydantic powers schema validation (schema.py); if it
 # is absent the scorers fall back to a stdlib type check, so this stays optional
 # but recommended. Logging uses the stdlib `logging` module (no dependency).
-pydantic>=2.0
+pydantic>=2.13.4
 
 # REAL runs additionally need the target app's dependencies:
 #   pip install -r app/mcp_extractor/requirements.txt        # for run_mcp_extractor_eval.py
