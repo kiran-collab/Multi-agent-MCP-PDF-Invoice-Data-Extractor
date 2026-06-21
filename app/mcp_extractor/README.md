@@ -12,6 +12,44 @@ This folder is fully self-contained.
 
 ---
 
+## Architecture
+
+File discovery and text extraction are delegated to a Box MCP server over stdio,
+so the app is a thin pipeline driver — no local PDF parsing or Box API code.
+
+```mermaid
+flowchart LR
+    USER["python mcp_invoice_app.py<br/>(box folder id)"]:::io
+
+    subgraph APP["mcp_invoice_app.py"]
+        direction TB
+        DRV["process_box_folder<br/>(pipeline driver)"]:::app
+        AGG["build_client_reports"]:::app
+    end
+
+    subgraph MCP["Box MCP Server (stdio)"]
+        direction TB
+        T1["list_folder"]:::mcp
+        T2["extract_text"]:::mcp
+    end
+
+    LLM["Gemini LLM<br/>extract_invoice_fields"]:::ext
+    OUT["Per-client reports"]:::io
+
+    USER --> DRV
+    DRV -->|"1: folder_id"| T1
+    T1 -->|"file ids + names"| DRV
+    DRV -->|"2: file_id"| T2
+    T2 -->|"invoice text"| LLM
+    LLM -->|"Invoice JSON"| DRV
+    DRV --> AGG -->|"reports"| OUT
+
+    classDef io fill:#EAF2FF,stroke:#2F6FED,stroke-width:1px,color:#0B2A6B;
+    classDef app fill:#EAF7EE,stroke:#2E9E5B,stroke-width:1px,color:#0B3D1F;
+    classDef ext fill:#FDECEC,stroke:#E0524D,stroke-width:1px,color:#5C0B0A;
+    classDef mcp fill:#FFF6E5,stroke:#E8A317,stroke-width:1px,color:#5C3C00;
+```
+
 ## Files
 
 ```

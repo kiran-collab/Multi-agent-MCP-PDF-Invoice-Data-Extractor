@@ -13,6 +13,59 @@ This folder is fully self-contained.
 
 ---
 
+## Architecture
+
+The workflow is split across three independent ADK `LlmAgent`s, each served over
+A2A. The Orchestrator delegates discovery to the Files Agent and parsing to the
+Extraction Agent; both reach Box through the shared MCP server. Numbers trace the
+orchestration sequence.
+
+```mermaid
+flowchart TB
+    USER["a2a_client.py<br/>(box folder id)"]:::io
+
+    subgraph ORCH["Orchestrator Agent &nbsp;·&nbsp; :8000"]
+        OC["coordinate workflow"]:::agent
+        BR["build_reports (tool)"]:::app
+    end
+
+    subgraph FA["Files Agent &nbsp;·&nbsp; :8001"]
+        LI["list_invoices (tool)"]:::app
+    end
+
+    subgraph EA["Extraction Agent &nbsp;·&nbsp; :8002"]
+        EI["extract_invoice (tool)"]:::app
+    end
+
+    subgraph MCP["Box MCP Server"]
+        M1["list_folder"]:::mcp
+        M2["extract_text"]:::mcp
+    end
+
+    LLM["Gemini LLM"]:::ext
+    OUT["Per-client reports"]:::io
+
+    USER -->|"1: A2A request"| OC
+    OC -->|"2: A2A list files"| LI
+    LI -->|"3: folder_id"| M1
+    M1 -->|"file ids + names"| LI
+    LI -->|"4: files"| OC
+    OC -->|"5: A2A extract · per file"| EI
+    EI -->|"6: file_id"| M2
+    M2 -->|"text"| EI
+    EI -->|"7: text"| LLM
+    LLM -->|"Invoice JSON"| EI
+    EI -->|"8: Invoice JSON"| OC
+    OC -->|"9: aggregate"| BR
+    BR -->|"reports"| OUT
+
+    classDef io fill:#EAF2FF,stroke:#2F6FED,stroke-width:1px,color:#0B2A6B;
+    classDef app fill:#EAF7EE,stroke:#2E9E5B,stroke-width:1px,color:#0B3D1F;
+    classDef agent fill:#F1ECFB,stroke:#7E57C2,stroke-width:1px,color:#3A2A63;
+    classDef ext fill:#FDECEC,stroke:#E0524D,stroke-width:1px,color:#5C0B0A;
+    classDef mcp fill:#FFF6E5,stroke:#E8A317,stroke-width:1px,color:#5C3C00;
+```
+
 ## Files
 
 ```
